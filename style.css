@@ -157,6 +157,11 @@ form > hr {
   color: crimson;
 }
 
+.heart-broken:{
+  /* height: 100px;
+  width: 100px; */
+}
+
 .pencil:hover {
   color: darkblue;
 }
@@ -188,6 +193,10 @@ form > hr {
 }
 
 .edit-btn {
+  margin-left: 10px;
+}
+
+.obliterate-btn{
   margin-left: 10px;
 }
 

@@ -48,6 +48,7 @@ $(async function () {
     // set the global user to the user instance
     currentUser = userInstance;
     syncCurrentUserToLocalStorage();
+    console.log("after log in", currentUser);
     loginAndSubmitForm();
   });
 
@@ -90,6 +91,8 @@ $(async function () {
     // Show the Login and Create Account Forms
     $loginForm.slideToggle();
     $createAccountForm.slideToggle();
+    console.log("before log in", currentUser);
+    loadLocalStorage();
     $allStoriesList.toggle();
   });
 
@@ -127,6 +130,9 @@ $(async function () {
     $allStoriesList.empty();
     await generateStories();
     loadLocalStorage();
+    $('#author').val("");
+    $('#title').val("");
+    $('#url').val("");
     $allStoriesList.show();
     // $('#my-articles').show();
 
@@ -153,15 +159,16 @@ $(async function () {
     for (let mystory of currentUser.ownStories) {
       $ownStories.append(generateStoryHTML(mystory, true));
     }
+    $('#my-articles .thumbs-down').hide();
     $('#my-articles .star').hide();
   }
 
   //removing user created story
-  $('body').on("click", "#my-articles .trash-can", async function (evt) {
+  $('body').on("click", ".obliterate-btn", async function (evt) {
     if (currentUser) {
-      let targetStoryId = $(evt.target).parent().attr("id");
+      let targetStoryId = $(evt.target).parent().parent().attr("id");
       await storyList.deleteStory(currentUser, targetStoryId);
-      $(evt.target).parent().remove();
+      $(evt.target).parent().parent().remove();
     }
   })
 
@@ -181,7 +188,7 @@ $(async function () {
     }
   })
   //update favorite list when removing articles from "favorite" page
-  $('body').on("click", "#favorited-articles .trash-can", function (evt) {
+  $('body').on("click", "#favorited-articles .thumbs-down", function (evt) {
     if (currentUser) {
       let targetStoryId = $(evt.target).parent().attr("id");
       currentUser.deleteFavorite(targetStoryId);
@@ -209,7 +216,6 @@ $(async function () {
       $favArticles.append($("<p>You don't have favorite stories yet!</p>"));
       return;
     }
-    console.log('generateFavStories, currentUser.fav', currentUser.favorites);
     for (let favStory of currentUser.favorites) {
       let result = {}
       if (favStory.username === currentUser.username) {
@@ -281,7 +287,7 @@ $(async function () {
    * A rendering function to run to reset the forms and hide the login info
    */
 
-  function loginAndSubmitForm() {
+  async function loginAndSubmitForm() {
     // hide the forms for logging in and signing up
     $loginForm.hide();
     $createAccountForm.hide();
@@ -291,6 +297,7 @@ $(async function () {
     $createAccountForm.trigger("reset");
 
     // show the stories
+    await generateStories();
     $allStoriesList.show();
 
     // update the navigation bar
@@ -313,13 +320,23 @@ $(async function () {
     // loop through all of our stories and generate HTML for them
     for (let story of storyList.stories) {
       let result = {};
-      if (story.username === currentUser.username) {
-        result = generateStoryHTML(story, true);
+      if (currentUser) {
+        if (story.username === currentUser.username) {
+          result = generateStoryHTML(story, true);
+        } else {
+          result = generateStoryHTML(story, false);
+        }
       } else {
         result = generateStoryHTML(story, false);
       }
+
       $allStoriesList.append(result);
-      $('#all-articles-list .trash-can').hide();
+      $('#all-articles-list .thumbs-down').hide();
+      $('#user-profile').hide();
+    }
+
+    if (!currentUser) {
+      $('.star').hide();
     }
   }
 
@@ -334,7 +351,7 @@ $(async function () {
     const storyMarkup = $(`
       <li id="${story.storyId}">
         <input type="checkbox" class="star">
-        <button class="trash-can fas fa-trash-alt"></button>
+        <button class="thumbs-down fas fa-thumbs-down"></button>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
@@ -344,7 +361,8 @@ $(async function () {
       </li>
     `);
     if (myStory) {
-      storyMarkup.append($('<small class="edit"><a class="edit-btn">edit</a></small'))
+      storyMarkup.append($('<small class="edit"><a class="edit-btn">edit</a></small'));
+      storyMarkup.append($('<small class="remove-story"><a class="obliterate-btn">delete</a></small'));
     }
 
     return storyMarkup;
